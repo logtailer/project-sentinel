@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+.env.*
+venv/
+env/
+.venv/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+*.tfplan
+*.tfbackend
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Lambda / SAM
+lambda/package/
+.aws-sam/
+samconfig.toml
+packaged.yaml
+
+# Local dev scratch
+scratch/
+notes.md
+*.local
+
+# pre-commit cache
+.pre-commit-cache/

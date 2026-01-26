@@ -1,0 +1,5 @@
+directory:
+  - infra
+
+compact: true
+quiet: true
