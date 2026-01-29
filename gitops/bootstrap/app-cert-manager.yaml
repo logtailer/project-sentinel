@@ -1,0 +1,39 @@
+# Sync wave 0 — cert-manager must be healthy before any Certificate or Issuer
+# resource is created by downstream apps (ArgoCD TLS, Falco webhooks).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: "1.15.3"
+    helm:
+      releaseName: cert-manager
+      values: |
+        installCRDs: true
+        podLabels:
+          app: cert-manager
+        serviceAccount:
+          name: cert-manager
+        prometheus:
+          enabled: true
+          servicemonitor:
+            enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
