@@ -1,0 +1,67 @@
+# Kyverno generates these resources for every new namespace via ClusterPolicy.
+# This file documents the expected shape — it is not applied directly.
+#
+# Generated per namespace:
+#   - ResourceQuota (cpu/memory limits)
+#   - LimitRange    (default container limits)
+#   - RoleBinding   (team-<slug>-admin → cluster-admin scoped to ns)
+#   - NetworkPolicy (default-deny via existing generate-pdb policy)
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: generate-namespace-defaults
+spec:
+  rules:
+    - name: generate-resource-quota
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              selector:
+                matchLabels:
+                  provisioner: sentinel
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease, argocd]
+      generate:
+        kind: ResourceQuota
+        name: default-quota
+        namespace: "{{request.object.metadata.name}}"
+        synchronize: true
+        data:
+          spec:
+            hard:
+              requests.cpu: "4"
+              requests.memory: 8Gi
+              limits.cpu: "8"
+              limits.memory: 16Gi
+              persistentvolumeclaims: "10"
+    - name: generate-limit-range
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              selector:
+                matchLabels:
+                  provisioner: sentinel
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease, argocd]
+      generate:
+        kind: LimitRange
+        name: default-limits
+        namespace: "{{request.object.metadata.name}}"
+        synchronize: true
+        data:
+          spec:
+            limits:
+              - type: Container
+                default:
+                  cpu: 500m
+                  memory: 512Mi
+                defaultRequest:
+                  cpu: 100m
+                  memory: 128Mi
