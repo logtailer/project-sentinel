@@ -1,0 +1,27 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: generate-pod-disruption-budget
+spec:
+  rules:
+    - name: generate-pdb
+      match:
+        any:
+          - resources:
+              kinds: [Deployment]
+              operations: [CREATE, UPDATE]
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease]
+      generate:
+        kind: PodDisruptionBudget
+        apiVersion: policy/v1
+        name: "{{request.object.metadata.name}}-pdb"
+        namespace: "{{request.object.metadata.namespace}}"
+        synchronize: true
+        data:
+          spec:
+            minAvailable: 1
+            selector:
+              matchLabels: "{{request.object.spec.selector.matchLabels}}"
