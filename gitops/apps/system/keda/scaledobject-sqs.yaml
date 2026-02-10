@@ -1,0 +1,32 @@
+# Example ScaledObject: scales a worker Deployment based on SQS queue depth.
+# TriggerAuthentication uses Pod Identity — no static AWS credentials needed.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: aws-pod-identity
+  namespace: workloads
+spec:
+  podIdentity:
+    provider: aws
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sqs-worker-scaler
+  namespace: workloads
+spec:
+  scaleTargetRef:
+    name: sqs-worker
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  cooldownPeriod: 60
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: aws-pod-identity
+      metadata:
+        queueURL: https://sqs.us-east-1.amazonaws.com/ACCOUNT_ID/sentinel-work-queue
+        queueLength: "5"
+        awsRegion: us-east-1
+        identityOwner: operator
