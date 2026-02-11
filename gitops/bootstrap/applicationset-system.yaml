@@ -1,0 +1,32 @@
+# Discovers every directory under gitops/apps/system/ and creates one ArgoCD
+# Application per directory. Adding a new system app = adding a directory.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: system-apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/<your-github-username>/project-sentinel
+        revision: main
+        directories:
+          - path: gitops/apps/system/*
+  template:
+    metadata:
+      name: "{{path.basename}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/<your-github-username>/project-sentinel
+        targetRevision: main
+        path: "{{path}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{path.basename}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
