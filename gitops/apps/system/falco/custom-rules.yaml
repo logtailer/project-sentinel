@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-custom-rules
+  namespace: falco
+data:
+  sentinel_rules.yaml: |
+    - rule: Crypto Mining Binary Detected
+      desc: Detects execution of common cryptomining binaries inside containers
+      condition: >
+        spawned_process and container and
+        proc.name in (xmrig, minerd, cpuminer, cgminer, bfgminer, ethminer)
+      output: >
+        Cryptomining binary detected (user=%user.name command=%proc.cmdline
+        container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [cryptomining, sentinel]
+
+    - rule: K8s API Abuse from Pod
+      desc: Detects a pod attempting to enumerate or modify cluster resources via the API
+      condition: >
+        k8s_audit and ka.verb in (list, create, delete, patch) and
+        ka.target.resource in (secrets, serviceaccounts, clusterrolebindings, rolebindings) and
+        not ka.user.name startswith "system:"
+      output: >
+        Suspicious K8s API access from pod (user=%ka.user.name verb=%ka.verb
+        resource=%ka.target.resource ns=%ka.target.namespace)
+      priority: WARNING
+      tags: [k8s-api, sentinel]
+
+    - rule: Write to Sensitive Mount
+      desc: Detects writes to host paths mounted into a container
+      condition: >
+        open_write and container and
+        fd.name startswith /host and
+        not proc.name in (fluentd, promtail, node-exporter)
+      output: >
+        Write to sensitive host mount (user=%user.name file=%fd.name
+        container=%container.name image=%container.image.repository)
+      priority: ERROR
+      tags: [host-mount, sentinel]

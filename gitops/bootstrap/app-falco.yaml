@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: falco
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://falcosecurity.github.io/charts
+    chart: falco
+    targetRevision: "4.6.1"
+    helm:
+      releaseName: falco
+      values: |
+        driver:
+          kind: ebpf
+        falco:
+          json_output: true
+          log_stderr: true
+          log_syslog: false
+          priority: WARNING
+          rules_file:
+            - /etc/falco/falco_rules.yaml
+            - /etc/falco/falco_rules.local.yaml
+            - /etc/falco/k8s_audit_rules.yaml
+            - /etc/falco/rules.d
+        falcoctl:
+          artifact:
+            install:
+              enabled: true
+            follow:
+              enabled: true
+        falcosidekick:
+          enabled: true
+          config:
+            alertmanager:
+              hostport: http://kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093
+              minimumpriority: warning
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: falco
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
