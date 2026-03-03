@@ -1,0 +1,47 @@
+version: 3
+automerge: false
+delete_source_branch_on_merge: true
+
+projects:
+  - name: bootstrap
+    dir: infra/bootstrap
+    workspace: default
+    terraform_version: v1.9.x
+    autoplan:
+      when_modified: ["*.tf", "../modules/**/*.tf"]
+      enabled: true
+    apply_requirements: [approved, mergeable]
+    workflow: sentinel-workflow
+
+  - name: dev
+    dir: infra/environments/dev
+    workspace: default
+    terraform_version: v1.9.x
+    autoplan:
+      when_modified: ["*.tf", "../../modules/**/*.tf"]
+      enabled: true
+    apply_requirements: [approved, mergeable]
+    workflow: sentinel-workflow
+
+  - name: prod
+    dir: infra/environments/prod
+    workspace: default
+    terraform_version: v1.9.x
+    autoplan:
+      when_modified: ["*.tf", "../../modules/**/*.tf"]
+      enabled: true
+    apply_requirements: [approved, mergeable, undiverged]
+    workflow: sentinel-workflow
+
+workflows:
+  sentinel-workflow:
+    plan:
+      steps:
+        - init:
+            extra_args: ["-backend=false"]
+        - run: terraform fmt -check -recursive .
+        - run: checkov --config-file ../../.checkov.yml --quiet
+        - plan
+    apply:
+      steps:
+        - apply
