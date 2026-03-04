@@ -1,0 +1,33 @@
+# Workloads ApplicationSet — discovers gitops/apps/workloads/* directories.
+# Sync policy is manual for prod (gated by branch policy) and automated for dev.
+# Promotion path: merge to main -> automated dev sync -> manual prod approval.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workload-apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/<your-github-username>/project-sentinel
+        revision: main
+        directories:
+          - path: gitops/apps/workloads/*
+  template:
+    metadata:
+      name: "{{path.basename}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/<your-github-username>/project-sentinel
+        targetRevision: main
+        path: "{{path}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{path.basename}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
