@@ -1,0 +1,50 @@
+# Sync wave 2 — after kube-prometheus-stack so Grafana datasource wiring
+# can reference the Loki service immediately on first sync.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: loki-stack
+    targetRevision: "2.10.2"
+    helm:
+      releaseName: loki
+      values: |
+        loki:
+          persistence:
+            enabled: true
+            storageClassName: gp3
+            size: 50Gi
+          config:
+            schema_config:
+              configs:
+                - from: "2026-01-01"
+                  store: boltdb-shipper
+                  object_store: filesystem
+                  schema: v11
+                  index:
+                    prefix: index_
+                    period: 24h
+            retention_period: 720h
+        promtail:
+          enabled: true
+        grafana:
+          enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
