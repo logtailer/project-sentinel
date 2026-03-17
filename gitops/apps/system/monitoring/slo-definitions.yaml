@@ -1,0 +1,65 @@
+apiVersion: sloth.slok.dev/v1
+kind: PrometheusServiceLevel
+metadata:
+  name: eks-node-availability
+  namespace: monitoring
+  labels:
+    app: sentinel
+spec:
+  service: "eks-nodes"
+  labels:
+    cluster: sentinel-dev
+  slos:
+    - name: node-availability
+      objective: 99.9
+      description: "99.9% of nodes must be in Ready state"
+      sli:
+        events:
+          errorQuery: |
+            sum(kube_node_status_condition{condition="Ready",status="true"} == 0)
+          totalQuery: |
+            count(kube_node_info)
+      alerting:
+        name: EKSNodeAvailabilitySLO
+        labels:
+          cluster: sentinel-dev
+        annotations:
+          summary: "EKS node availability SLO burn rate is too high"
+        page_alert:
+          labels:
+            severity: critical
+        ticket_alert:
+          labels:
+            severity: warning
+---
+apiVersion: sloth.slok.dev/v1
+kind: PrometheusServiceLevel
+metadata:
+  name: eks-api-latency
+  namespace: monitoring
+  labels:
+    app: sentinel
+spec:
+  service: "eks-api"
+  labels:
+    cluster: sentinel-dev
+  slos:
+    - name: api-request-latency
+      objective: 99.5
+      description: "99.5% of kube-apiserver requests complete under 1 second"
+      sli:
+        events:
+          errorQuery: |
+            sum(rate(apiserver_request_duration_seconds_bucket{le="1",verb!~"WATCH|LIST"}[5m]))
+          totalQuery: |
+            sum(rate(apiserver_request_duration_seconds_count{verb!~"WATCH|LIST"}[5m]))
+      alerting:
+        name: EKSAPILatencySLO
+        labels:
+          cluster: sentinel-dev
+        page_alert:
+          labels:
+            severity: critical
+        ticket_alert:
+          labels:
+            severity: warning

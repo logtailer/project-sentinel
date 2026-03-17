@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: slo-burn-rate
+  namespace: monitoring
+  labels:
+    app: sentinel
+spec:
+  groups:
+    - name: slo.burn_rate
+      rules:
+        - alert: EKSNodeSLOFastBurn
+          expr: |
+            (
+              slo:sli_error:ratio_rate1h{sloth_service="eks-nodes"} > (14.4 * (1 - 0.999))
+              and
+              slo:sli_error:ratio_rate5m{sloth_service="eks-nodes"} > (14.4 * (1 - 0.999))
+            )
+          for: 2m
+          labels:
+            severity: critical
+            cluster: sentinel-dev
+          annotations:
+            summary: "EKS node SLO fast burn — error budget exhausted in < 1h at current rate"
+
+        - alert: EKSNodeSLOSlowBurn
+          expr: |
+            (
+              slo:sli_error:ratio_rate6h{sloth_service="eks-nodes"} > (6 * (1 - 0.999))
+              and
+              slo:sli_error:ratio_rate30m{sloth_service="eks-nodes"} > (6 * (1 - 0.999))
+            )
+          for: 15m
+          labels:
+            severity: warning
+            cluster: sentinel-dev
+          annotations:
+            summary: "EKS node SLO slow burn — error budget at risk within 6h"
