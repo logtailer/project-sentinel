@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-extra-config
+  namespace: monitoring
+data:
+  extra-scrape-configs.yaml: |
+    - job_name: eks-node-logs
+      static_configs:
+        - targets: [localhost]
+          labels:
+            job: eks-node
+            cluster: sentinel-dev
+            __path__: /var/log/messages
+      pipeline_stages:
+        - regex:
+            expression: '(?P<timestamp>\S+ \S+) (?P<hostname>\S+) (?P<process>\S+): (?P<message>.*)'
+        - labels:
+            hostname:
+            process:
+        - timestamp:
+            source: timestamp
+            format: "Jan 02 15:04:05"
+
+    - job_name: kube-audit
+      static_configs:
+        - targets: [localhost]
+          labels:
+            job: kube-audit
+            cluster: sentinel-dev
+            __path__: /var/log/kube-apiserver-audit.log
+      pipeline_stages:
+        - json:
+            expressions:
+              verb: verb
+              user: user.username
+              resource: objectRef.resource
+              namespace: objectRef.namespace
+        - labels:
+            verb:
+            user:
+            resource:
+            namespace:
