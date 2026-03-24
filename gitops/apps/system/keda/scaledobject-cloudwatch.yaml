@@ -1,0 +1,27 @@
+# Scales workloads based on a CloudWatch metric — used with the scaling advisor
+# Lambda that writes CPU alarm state to SSM. This closes the loop: alarm fires →
+# Lambda writes advice → KEDA reads CloudWatch metric → scales pods.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cloudwatch-cpu-scaler
+  namespace: workloads
+spec:
+  scaleTargetRef:
+    name: api-server
+  minReplicaCount: 2
+  maxReplicaCount: 30
+  cooldownPeriod: 120
+  triggers:
+    - type: aws-cloudwatch
+      authenticationRef:
+        name: aws-pod-identity
+      metadata:
+        namespace: AWS/EKS
+        dimensionName: ClusterName
+        dimensionValue: sentinel-dev
+        metricName: node_cpu_utilization
+        targetMetricValue: "70"
+        minMetricValue: "0"
+        awsRegion: us-east-1
+        identityOwner: operator
