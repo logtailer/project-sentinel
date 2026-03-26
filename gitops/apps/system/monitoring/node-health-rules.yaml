@@ -1,0 +1,51 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: eks-node-health
+  namespace: monitoring
+  labels:
+    app: sentinel
+spec:
+  groups:
+    - name: eks.node.health
+      interval: 30s
+      rules:
+        - alert: NodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            cluster: sentinel-dev
+          annotations:
+            summary: "Node {{ $labels.node }} is not ready"
+            description: "Node {{ $labels.node }} has been NotReady for more than 2 minutes. Lambda remediation will trigger via EventBridge."
+
+        - alert: NodeHighCPU
+          expr: (1 - avg by(node) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            cluster: sentinel-dev
+          annotations:
+            summary: "High CPU on node {{ $labels.node }}"
+            description: "Node {{ $labels.node }} CPU usage is {{ $value | humanize }}% for 5 minutes. Karpenter scale-out expected."
+
+        - alert: NodeLowMemory
+          expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 10
+          for: 5m
+          labels:
+            severity: warning
+            cluster: sentinel-dev
+          annotations:
+            summary: "Low memory on node {{ $labels.node }}"
+            description: "Node {{ $labels.node }} has {{ $value | humanize }}% memory available."
+
+        - alert: NodeGroupScalingStuck
+          expr: kube_node_status_condition{condition="Ready",status="true"} < 2
+          for: 10m
+          labels:
+            severity: critical
+            cluster: sentinel-dev
+          annotations:
+            summary: "Fewer than 2 nodes ready in cluster"
+            description: "Only {{ $value }} node(s) ready for 10 minutes — Karpenter or node group may be stuck."
