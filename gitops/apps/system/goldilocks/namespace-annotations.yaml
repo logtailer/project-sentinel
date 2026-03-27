@@ -1,0 +1,16 @@
+# Goldilocks watches namespaces labelled goldilocks.fairwinds.com/enabled=true.
+# It creates a VPA object per Deployment and surfaces recommendations in its UI.
+# Enabled for workload namespaces only — system namespaces managed separately.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workloads
+  labels:
+    goldilocks.fairwinds.com/enabled: "true"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    goldilocks.fairwinds.com/enabled: "true"
