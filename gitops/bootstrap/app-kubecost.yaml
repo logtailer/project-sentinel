@@ -1,0 +1,56 @@
+# Sync wave 3 — after kube-prometheus-stack (wave 2) so Kubecost can federate
+# against the existing Prometheus rather than deploying its own instance.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubecost
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://kubecost.github.io/cost-analyzer/
+    chart: cost-analyzer
+    targetRevision: "2.3.x"
+    helm:
+      releaseName: kubecost
+      values: |
+        global:
+          prometheus:
+            enabled: false
+            fqdn: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        prometheus:
+          server:
+            enabled: false
+        grafana:
+          enabled: false
+          proxy: false
+        kubecostProductConfigs:
+          clusterName: sentinel-dev
+          currencyCode: USD
+          labelMappingConfigs:
+            enabled: true
+            owner_label: team
+            team_label: team
+            department_label: department
+            product_label: app
+            environment_label: environment
+        persistentVolume:
+          enabled: true
+          storageClass: gp3
+          size: 32Gi
+        ingress:
+          enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubecost
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
