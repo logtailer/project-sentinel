@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubecost-alerts
+  namespace: kubecost
+data:
+  alerts.json: |
+    {
+      "alerts": [
+        {
+          "type": "budget",
+          "threshold": 50,
+          "window": "7d",
+          "aggregation": "namespace",
+          "filter": "namespace:karpenter",
+          "id": "karpenter-weekly-budget"
+        },
+        {
+          "type": "budget",
+          "threshold": 200,
+          "window": "30d",
+          "aggregation": "cluster",
+          "filter": "",
+          "id": "cluster-monthly-budget"
+        },
+        {
+          "type": "efficiency",
+          "threshold": 0.4,
+          "window": "7d",
+          "aggregation": "namespace",
+          "filter": "",
+          "id": "low-efficiency-namespaces"
+        }
+      ]
+    }
+---
+# Namespace labels used by Kubecost label mappings for cost allocation reporting.
+# team and department labels are applied at namespace creation via Kyverno.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-cost-allocation-labels
+spec:
+  rules:
+    - name: add-labels
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease, argocd]
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              environment: dev
+              +(team): platform
+              +(department): engineering
