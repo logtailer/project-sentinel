@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falcosidekick-config
+  namespace: falco
+data:
+  config.yaml: |
+    alertmanager:
+      hostport: http://kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093
+      minimumpriority: warning
+      mutualtls: false
+      checkcert: false
+      endpoint: /api/v2/alerts
+      expiresafter: 30m
+      customfields:
+        cluster: sentinel-dev
+        source: falco
+    slack:
+      webhookurl: ""
+      minimumpriority: critical
+    loki:
+      hostport: http://loki.monitoring.svc.cluster.local:3100
+      minimumpriority: warning
+      customfields:
+        cluster: sentinel-dev

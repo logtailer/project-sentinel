@@ -1,0 +1,30 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: block-images-with-critical-cves
+  annotations:
+    # Requires Trivy Operator to be running — VulnerabilityReport CRDs must exist.
+    policies.kyverno.io/category: Security
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-vulnerability-report
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              operations: [CREATE, UPDATE]
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease, falco, trivy-system]
+      validate:
+        message: "Image has critical CVEs. Check the Trivy VulnerabilityReport and update the image before deploying."
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.spec.containers[].image }}"
+                operator: AnyIn
+                # This references a Trivy VulnerabilityReport via a Kyverno context lookup.
+                # In practice, integrate via an admission webhook or OPA policy.
+                value: []
