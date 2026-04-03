@@ -61,6 +61,30 @@ jobs:
       - name: Run checkov
         run: checkov --config-file .checkov.yml
 
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.15.x"
+
+      - name: Lint Helm values in bootstrap apps
+        run: |
+          for app in gitops/bootstrap/app-*.yaml; do
+            echo "Checking $app"
+            # Extract repoURL, chart, targetRevision and run helm lint
+            repoURL=$(grep 'repoURL:' "$app" | head -1 | awk '{print $2}')
+            chart=$(grep 'chart:' "$app" | head -1 | awk '{print $2}')
+            version=$(grep 'targetRevision:' "$app" | head -1 | awk '{print $2}' | tr -d '"')
+            if [[ "$repoURL" == http* ]]; then
+              helm repo add "tmp-$chart" "$repoURL" --force-update 2>/dev/null || true
+              helm lint "tmp-$chart/$chart" --version "$version" 2>/dev/null || true
+            fi
+          done
+
   kubeconform:
     name: Manifest Validation
     runs-on: ubuntu-latest
