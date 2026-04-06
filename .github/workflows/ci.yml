@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  terraform-fmt:
+    name: Terraform Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.x"
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive infra/
+
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [bootstrap, environments/dev]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.x"
+
+      - name: Init (local backend)
+        working-directory: infra/${{ matrix.environment }}
+        run: terraform init -backend=false
+
+      - name: Validate
+        working-directory: infra/${{ matrix.environment }}
+        run: terraform validate
+
+  checkov:
+    name: Checkov Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install checkov
+        run: pip install checkov
+
+      - name: Run checkov
+        run: checkov --config-file .checkov.yml
+
+  pytest:
+    name: Lambda Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [node_remediation, scaling_advisor]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: lambda
+        run: pip install -r tests/requirements-test.txt
+
+      - name: Run tests
+        working-directory: lambda
+        run: pytest tests/test_${{ matrix.package }}.py -v
+        env:
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
