@@ -282,3 +282,21 @@ resource "aws_lambda_function" "spot_savings" {
 
   tags = local.tags
 }
+
+resource "aws_scheduler_schedule" "spot_savings_weekly" {
+  name       = "${var.cluster_name}-spot-savings-weekly"
+  group_name = "default"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # Every Monday at 08:00 UTC
+  schedule_expression = "cron(0 8 ? * MON *)"
+
+  target {
+    arn      = aws_lambda_function.spot_savings.arn
+    role_arn = aws_iam_role.spot_savings.arn
+    input    = jsonencode({ source = "scheduler" })
+  }
+}
