@@ -6,9 +6,10 @@ locals {
   }
 
   # sentinel/ IAM path prefix — all remediation roles grouped for audit visibility
-  iam_path           = "/sentinel/"
+  iam_path            = "/sentinel/"
   ssm_remediation_key = "/${var.environment}/${var.project}/remediation/nodes"
   ssm_advice_key      = "/${var.environment}/${var.project}/advice/scaling"
+  ssm_savings_key     = "/${var.environment}/${var.project}/savings"
 }
 
 # --- IAM ---
@@ -213,4 +214,89 @@ resource "aws_lambda_permission" "scaling_advisor_eventbridge" {
   function_name = aws_lambda_function.scaling_advisor.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.alarm_state_change.arn
+}
+
+# --- Spot Savings Report ---
+
+resource "aws_iam_role" "spot_savings" {
+  name               = "${var.cluster_name}-spot-savings"
+  path               = local.iam_path
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+  tags               = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "spot_savings_basic" {
+  role       = aws_iam_role.spot_savings.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_policy" "spot_savings" {
+  name = "${var.cluster_name}-spot-savings"
+  path = local.iam_path
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "CostExplorer"
+        Effect = "Allow"
+        Action = ["ce:GetCostAndUsage"]
+        Resource = "*"
+      },
+      {
+        Sid    = "SSM"
+        Effect = "Allow"
+        Action = ["ssm:PutParameter", "ssm:GetParameter"]
+        Resource = "arn:aws:ssm:*:*:parameter${local.ssm_savings_key}/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "spot_savings" {
+  role       = aws_iam_role.spot_savings.name
+  policy_arn = aws_iam_policy.spot_savings.arn
+}
+
+data "archive_file" "spot_savings" {
+  type        = "zip"
+  source_dir  = "${path.root}/../../../lambda/spot_savings"
+  output_path = "${path.module}/.build/spot_savings.zip"
+}
+
+resource "aws_lambda_function" "spot_savings" {
+  function_name    = "${var.cluster_name}-spot-savings"
+  role             = aws_iam_role.spot_savings.arn
+  runtime          = "python3.12"
+  handler          = "handler.handler"
+  filename         = data.archive_file.spot_savings.output_path
+  source_code_hash = data.archive_file.spot_savings.output_base64sha256
+  timeout          = 60
+
+  environment {
+    variables = {
+      CLUSTER_NAME    = var.cluster_name
+      SSM_SAVINGS_KEY = local.ssm_savings_key
+    }
+  }
+
+  tags = local.tags
+}
+
+resource "aws_scheduler_schedule" "spot_savings_weekly" {
+  name       = "${var.cluster_name}-spot-savings-weekly"
+  group_name = "default"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # Every Monday at 08:00 UTC
+  schedule_expression = "cron(0 8 ? * MON *)"
+
+  target {
+    arn      = aws_lambda_function.spot_savings.arn
+    role_arn = aws_iam_role.spot_savings.arn
+    input    = jsonencode({ source = "scheduler" })
+  }
 }
