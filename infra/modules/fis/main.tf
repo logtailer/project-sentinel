@@ -76,3 +76,51 @@ resource "aws_fis_experiment_template" "spot_termination" {
 
   tags = merge(var.tags, { Name = "${var.cluster_name}-spot-termination" })
 }
+
+# Memory pressure experiment — validates that Karpenter scales out before OOM
+resource "aws_fis_experiment_template" "memory_pressure" {
+  description = "Inject memory stress on a node to validate Karpenter scale-out"
+  role_arn    = aws_iam_role.fis.arn
+
+  stop_condition {
+    source = "none"
+  }
+
+  action {
+    name      = "memory-stress"
+    action_id = "aws:ssm:send-command"
+
+    parameter {
+      key   = "documentArn"
+      value = "arn:aws:ssm:us-east-1::document/AWSFIS-Run-Memory-Stress"
+    }
+
+    parameter {
+      key   = "documentParameters"
+      value = jsonencode({ DurationSeconds = "120", Workers = "4", Percent = "80" })
+    }
+
+    parameter {
+      key   = "duration"
+      value = "PT3M"
+    }
+
+    target {
+      key   = "Instances"
+      value = "general-nodes"
+    }
+  }
+
+  target {
+    name           = "general-nodes"
+    resource_type  = "aws:ec2:instance"
+    selection_mode = "COUNT(1)"
+
+    resource_tag {
+      key   = "eks:nodegroup-name"
+      value = var.node_group_name
+    }
+  }
+
+  tags = merge(var.tags, { Name = "${var.cluster_name}-memory-pressure" })
+}
