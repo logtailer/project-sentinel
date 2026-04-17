@@ -35,6 +35,38 @@ spec:
 apiVersion: sloth.slok.dev/v1
 kind: PrometheusServiceLevel
 metadata:
+  name: kubecost-availability
+  namespace: monitoring
+  labels:
+    app: sentinel
+spec:
+  service: "kubecost"
+  labels:
+    cluster: sentinel-dev
+  slos:
+    - name: cost-model-availability
+      objective: 99.5
+      description: "Kubecost cost model must be available 99.5% of the time"
+      sli:
+        events:
+          errorQuery: |
+            sum(kube_deployment_status_replicas_unavailable{namespace="kubecost",deployment="kubecost-cost-analyzer"})
+          totalQuery: |
+            sum(kube_deployment_status_replicas{namespace="kubecost",deployment="kubecost-cost-analyzer"})
+      alerting:
+        name: KubecostAvailabilitySLO
+        labels:
+          cluster: sentinel-dev
+        page_alert:
+          labels:
+            severity: warning
+        ticket_alert:
+          labels:
+            severity: info
+---
+apiVersion: sloth.slok.dev/v1
+kind: PrometheusServiceLevel
+metadata:
   name: eks-api-latency
   namespace: monitoring
   labels:
