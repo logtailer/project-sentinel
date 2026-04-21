@@ -1,0 +1,37 @@
+# Watches gitops/tenants/ for directories named by team slug.
+# Each directory needs only a namespace.yaml with metadata — this ApplicationSet
+# generates a full namespace with RBAC, ResourceQuota, and NetworkPolicy.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: namespace-provisioner
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/logtailer/project-sentinel.git
+        revision: HEAD
+        directories:
+          - path: gitops/tenants/*
+  template:
+    metadata:
+      name: "ns-{{path.basename}}"
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/logtailer/project-sentinel.git
+        targetRevision: HEAD
+        path: "gitops/tenants/{{path.basename}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{path.basename}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

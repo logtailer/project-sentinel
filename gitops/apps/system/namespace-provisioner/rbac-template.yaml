@@ -1,0 +1,33 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: generate-namespace-rbac
+spec:
+  rules:
+    - name: generate-rolebinding
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              selector:
+                matchLabels:
+                  provisioner: sentinel
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease, argocd]
+      generate:
+        kind: RoleBinding
+        name: "team-admin"
+        namespace: "{{request.object.metadata.name}}"
+        synchronize: true
+        data:
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: admin
+          subjects:
+            - apiGroup: rbac.authorization.k8s.io
+              kind: Group
+              # Group name follows GitHub team slug format: org/team-slug
+              name: "{{request.object.metadata.labels.\"team\"}}"

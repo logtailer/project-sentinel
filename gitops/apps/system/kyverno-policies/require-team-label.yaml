@@ -1,0 +1,23 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-team-label
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-team-label
+      match:
+        any:
+          - resources:
+              kinds: [Deployment, StatefulSet, DaemonSet, Job, CronJob]
+              operations: [CREATE, UPDATE]
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease, argocd, cert-manager, karpenter, kubecost, monitoring, external-secrets]
+      validate:
+        message: "All workload resources must have a 'team' label for cost allocation."
+        pattern:
+          metadata:
+            labels:
+              team: "?*"
