@@ -1,0 +1,37 @@
+grafana:
+  adminPassword: ""
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 20Gi
+
+prometheus:
+  prometheusSpec:
+    retention: 90d
+    replicas: 2
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 200Gi
+    ruleSelector:
+      matchLabels:
+        app: sentinel
+    externalLabels:
+      cluster: sentinel-prod
+      environment: prod
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 2
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 10Gi
