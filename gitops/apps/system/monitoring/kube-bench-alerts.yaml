@@ -1,0 +1,32 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-bench-compliance
+  namespace: monitoring
+  labels:
+    app: sentinel
+spec:
+  groups:
+    - name: kube_bench.compliance
+      rules:
+        - alert: CISBenchmarkFailures
+          expr: |
+            kube_bench_failed_checks_total > 10
+          for: 0m
+          labels:
+            severity: warning
+            cluster: sentinel-dev
+          annotations:
+            summary: "CIS Benchmark has {{ $value }} failures"
+            description: "kube-bench detected {{ $value }} failed CIS checks. Review the weekly report and remediate."
+
+        - alert: CISBenchmarkCriticalFailures
+          expr: |
+            kube_bench_failed_checks_total{severity="FAIL"} > 3
+          for: 0m
+          labels:
+            severity: critical
+            cluster: sentinel-dev
+          annotations:
+            summary: "CIS Benchmark FAIL-level violations detected"
+            description: "{{ $value }} FAIL-level CIS checks. These represent significant security gaps requiring immediate attention."
