@@ -5,9 +5,13 @@ plugin "aws" {
 }
 
 rule "aws_resource_missing_tags" {
-  enabled  = true
-  tags     = ["Project", "Environment", "ManagedBy"]
-  exclude  = []
+  enabled = true
+  tags    = ["Project", "Environment", "ManagedBy", "Team", "CostCenter"]
+  exclude = [
+    "aws_iam_role_policy_attachment",
+    "aws_lambda_permission",
+    "aws_cloudwatch_event_target",
+  ]
 }
 
 rule "terraform_deprecated_interpolation" {
