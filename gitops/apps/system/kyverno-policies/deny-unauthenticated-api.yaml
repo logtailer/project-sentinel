@@ -1,0 +1,21 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: deny-unauthenticated-api-access
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: deny-anonymous-requests
+      match:
+        any:
+          - resources:
+              kinds: ["*"]
+              operations: [CREATE, UPDATE, DELETE]
+      preconditions:
+        any:
+          - key: "{{ request.userInfo.username }}"
+            operator: AnyIn
+            value: ["system:anonymous", "system:unauthenticated"]
+      validate:
+        message: "Unauthenticated requests are not permitted to mutate cluster resources."
+        deny: {}
