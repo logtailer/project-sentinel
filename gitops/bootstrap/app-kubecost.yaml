@@ -14,7 +14,7 @@ spec:
   source:
     repoURL: https://kubecost.github.io/cost-analyzer/
     chart: cost-analyzer
-    targetRevision: "2.3.x"
+    targetRevision: "2.3.4"
     helm:
       releaseName: kubecost
       values: |
