@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: [environments/dev, environments/prod]
+        environment: [aws/environments/dev, aws/environments/prod]
     permissions:
       id-token: write
       contents: read

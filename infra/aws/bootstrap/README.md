@@ -5,7 +5,7 @@ Creates the S3 bucket and DynamoDB table that all other Terraform environments u
 ## Run once, before anything else
 
 ```bash
-cd infra/bootstrap
+cd infra/aws/bootstrap
 terraform init
 terraform apply
 ```

@@ -32,17 +32,29 @@ Self-healing is wired end-to-end: Karpenter replaces spot nodes, three Lambda fu
 ```
 .
 ├── infra/
-│   ├── bootstrap/          # S3 state bucket + DynamoDB lock (run once)
-│   ├── modules/            # Reusable Terraform modules
-│   │   ├── networking/     # VPC, subnets, NAT, VPC endpoints
-│   │   ├── eks/            # Cluster, node groups, KMS, Karpenter IAM
-│   │   ├── add-ons/        # ArgoCD Helm release + root Application
-│   │   ├── lambda/         # IAM, packaging, EventBridge for all three Lambdas
-│   │   ├── security/       # GuardDuty, Secrets Manager shell resources
-│   │   └── fis/            # AWS FIS IAM + experiment templates
-│   └── environments/
-│       ├── dev/            # Dev environment (wires all modules, ECR, FIS)
-│       └── prod/           # Prod skeleton (HA Prometheus, 90d retention)
+│   ├── aws/
+│   │   ├── bootstrap/          # S3 state bucket + DynamoDB lock (run once)
+│   │   ├── modules/            # Reusable Terraform modules
+│   │   │   ├── networking/     # VPC, subnets, NAT, VPC endpoints
+│   │   │   ├── eks/            # Cluster, node groups, KMS, Karpenter IAM
+│   │   │   ├── add-ons/        # ArgoCD Helm release + root Application
+│   │   │   ├── lambda/         # IAM, packaging, EventBridge for all three Lambdas
+│   │   │   ├── security/       # GuardDuty, Secrets Manager shell resources
+│   │   │   └── fis/            # AWS FIS IAM + experiment templates
+│   │   └── environments/
+│   │       ├── dev/            # Dev environment (wires all modules, ECR, FIS)
+│   │       └── prod/           # Prod skeleton (HA Prometheus, 90d retention)
+│   └── azure/
+│       ├── bootstrap/          # Azure Storage Account + resource group for state (run once)
+│       ├── modules/            # Reusable Terraform modules
+│       │   ├── networking/     # VNet, subnets, NSGs
+│       │   ├── aks/            # AKS cluster, node pools, Workload Identity
+│       │   ├── add-ons/        # ArgoCD Helm release + root Application
+│       │   ├── key-vault/      # Key Vault, access policies, ESO integration
+│       │   └── function-app/   # Azure Functions, Service Bus triggers
+│       └── environments/
+│           ├── dev/            # Dev environment
+│           └── prod/           # Prod environment
 │
 ├── gitops/
 │   ├── bootstrap/          # ArgoCD root Application + ApplicationSets + Helm app manifests
@@ -92,7 +104,7 @@ Self-healing is wired end-to-end: Karpenter replaces spot nodes, three Lambda fu
 ### 1 — Bootstrap state backend (once)
 
 ```bash
-cd infra/bootstrap
+cd infra/aws/bootstrap
 terraform init && terraform apply
 ```
 
@@ -117,7 +129,7 @@ github_oauth_client_id = "<oauth-client-id>"
 ### 4 — Two-phase apply
 
 ```bash
-cd infra/environments/dev
+cd infra/aws/environments/dev
 
 # Phase 1: VPC + EKS cluster
 terraform init

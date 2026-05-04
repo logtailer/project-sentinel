@@ -29,7 +29,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [bootstrap, environments/dev]
+        include:
+          - cloud: aws
+            environment: bootstrap
+          - cloud: aws
+            environment: environments/dev
+          - cloud: azure
+            environment: bootstrap
+          - cloud: azure
+            environment: environments/dev
     steps:
       - uses: actions/checkout@v4
 
@@ -38,11 +46,11 @@ jobs:
           terraform_version: "1.9.x"
 
       - name: Init (local backend)
-        working-directory: infra/${{ matrix.environment }}
+        working-directory: infra/${{ matrix.cloud }}/${{ matrix.environment }}
         run: terraform init -backend=false
 
       - name: Validate
-        working-directory: infra/${{ matrix.environment }}
+        working-directory: infra/${{ matrix.cloud }}/${{ matrix.environment }}
         run: terraform validate
 
   checkov:

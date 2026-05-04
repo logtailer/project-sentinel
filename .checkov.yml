@@ -1,5 +1,5 @@
 directory:
-  - infra
+  - infra/aws
 
 compact: true
 quiet: true
