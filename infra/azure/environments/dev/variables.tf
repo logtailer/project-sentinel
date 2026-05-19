@@ -19,3 +19,13 @@ variable "storage_account_primary_access_key" {
   type        = string
   sensitive   = true
 }
+
+variable "argocd_hostname" {
+  description = "Hostname for the ArgoCD ingress (e.g. argocd.sentinel.example.com)"
+  type        = string
+}
+
+variable "gitops_repo_url" {
+  description = "URL of the GitOps repository ArgoCD will track"
+  type        = string
+}

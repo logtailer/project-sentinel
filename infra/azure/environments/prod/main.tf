@@ -87,3 +87,17 @@ module "function_app" {
 
   tags = local.common_tags
 }
+
+module "add_ons" {
+  source = "../../modules/add-ons"
+
+  cluster_name           = local.cluster_name
+  resource_group_name    = azurerm_resource_group.main.name
+  argocd_hostname        = var.argocd_hostname
+  gitops_repo_url        = var.gitops_repo_url
+  eso_identity_client_id = module.key_vault.eso_identity_client_id
+
+  tags = local.common_tags
+
+  depends_on = [module.aks]
+}
