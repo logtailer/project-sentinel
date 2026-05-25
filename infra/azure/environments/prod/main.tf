@@ -81,6 +81,8 @@ module "function_app" {
   resource_group_name = azurerm_resource_group.main.name
   cluster_name        = local.cluster_name
   key_vault_uri       = module.key_vault.key_vault_uri
+  subscription_id     = data.azurerm_client_config.current.subscription_id
+  aks_cluster_id      = module.aks.cluster_id
 
   storage_account_name               = var.storage_account_name
   storage_account_primary_access_key = var.storage_account_primary_access_key

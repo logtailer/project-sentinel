@@ -32,6 +32,16 @@ variable "key_vault_uri" {
   type = string
 }
 
+variable "subscription_id" {
+  description = "Azure subscription ID — used for cost management role scope"
+  type        = string
+}
+
+variable "aks_cluster_id" {
+  description = "Resource ID of the AKS cluster — used for RBAC role assignment"
+  type        = string
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

@@ -1,3 +1,17 @@
+data "azurerm_subscription" "current" {}
+
+resource "azurerm_role_assignment" "functions_aks_user" {
+  scope                = var.aks_cluster_id
+  role_definition_name = "Azure Kubernetes Service Cluster User Role"
+  principal_id         = azurerm_user_assigned_identity.functions.principal_id
+}
+
+resource "azurerm_role_assignment" "functions_cost_reader" {
+  scope                = "/subscriptions/${var.subscription_id}"
+  role_definition_name = "Cost Management Reader"
+  principal_id         = azurerm_user_assigned_identity.functions.principal_id
+}
+
 resource "azurerm_service_plan" "functions" {
   name                = "asp-${var.project}-functions-${var.environment}"
   resource_group_name = var.resource_group_name
