@@ -1,0 +1,33 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: azure-servicebus-auth
+  namespace: sentinel-demo
+spec:
+  podIdentity:
+    provider: azure-workload
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sentinel-demo-servicebus
+  namespace: sentinel-demo
+  labels:
+    app: sentinel-demo
+    team: platform
+    environment: dev
+spec:
+  scaleTargetRef:
+    name: sentinel-demo
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  cooldownPeriod: 60
+  triggers:
+    - type: azure-servicebus
+      authenticationRef:
+        name: azure-servicebus-auth
+      metadata:
+        namespace: sentinel
+        queueName: sentinel-work-queue
+        messageCount: "5"
+        activationMessageCount: "1"
