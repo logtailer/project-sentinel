@@ -90,6 +90,19 @@ module "function_app" {
   tags = local.common_tags
 }
 
+module "service_bus" {
+  source = "../../modules/service-bus"
+
+  project             = local.project
+  environment         = local.environment
+  location            = local.location
+  resource_group_name = azurerm_resource_group.main.name
+
+  workload_identity_principal_id = module.aks.kubelet_identity_object_id
+
+  tags = local.common_tags
+}
+
 module "add_ons" {
   source = "../../modules/add-ons"
 
