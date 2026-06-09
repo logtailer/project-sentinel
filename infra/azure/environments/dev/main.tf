@@ -90,6 +90,18 @@ module "function_app" {
   tags = local.common_tags
 }
 
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  project             = local.project
+  environment         = local.environment
+  location            = local.location
+  resource_group_name = azurerm_resource_group.main.name
+  aks_cluster_id      = module.aks.cluster_id
+
+  tags = local.common_tags
+}
+
 module "service_bus" {
   source = "../../modules/service-bus"
 

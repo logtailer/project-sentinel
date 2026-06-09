@@ -13,3 +13,7 @@ output "key_vault_uri" {
 output "eso_identity_client_id" {
   value = module.key_vault.eso_identity_client_id
 }
+
+output "log_analytics_workspace_id" {
+  value = module.monitoring.log_analytics_workspace_id
+}
