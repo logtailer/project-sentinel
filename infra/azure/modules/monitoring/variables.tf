@@ -24,6 +24,12 @@ variable "action_group_email" {
   default     = "platform@sentinel.example.com"
 }
 
+variable "node_remediation_function_url" {
+  description = "Webhook URL of the node_remediation Azure Function"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
