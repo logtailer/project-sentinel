@@ -49,7 +49,8 @@ module "aks" {
   kubernetes_version     = "1.30"
   aks_subnet_id          = module.networking.aks_subnet_id
   pod_subnet_id          = module.networking.pod_subnet_id
-  admin_group_object_ids = var.admin_group_object_ids
+  admin_group_object_ids     = var.admin_group_object_ids
+  log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
 
   system_node_count = 2
   system_vm_size    = "Standard_D2s_v3"
@@ -57,6 +58,8 @@ module "aks" {
   user_node_max     = 10
 
   tags = local.common_tags
+
+  depends_on = [module.monitoring]
 }
 
 module "key_vault" {
