@@ -1,6 +1,6 @@
 # Project Sentinel
 
-A production-grade, self-healing EKS platform built with Terraform and ArgoCD GitOps. Sentinel provisions a fully automated Kubernetes environment on AWS — from VPC and cluster creation through runtime security, observability, FinOps, and chaos engineering — with every layer managed as code.
+A production-grade, self-healing Kubernetes platform built with Terraform and ArgoCD GitOps — deployable on **AWS (EKS)** or **Azure (AKS)**. Sentinel provisions a fully automated Kubernetes environment from cluster creation through runtime security, observability, FinOps, and chaos engineering — with every layer managed as code and no cloud vendor lock-in at the GitOps layer.
 
 ## What it builds
 
@@ -71,13 +71,21 @@ Self-healing is wired end-to-end: Karpenter replaces spot nodes, three Lambda fu
 │   ├── spot_savings/       # Weekly Cost Explorer report → SSM parameter
 │   └── tests/              # pytest + moto unit tests for all three functions
 │
+├── azure-functions/
+│   ├── node_remediation/   # AKS node event → node image upgrade (Azure SDK port)
+│   ├── scaling_advisor/    # Azure Monitor alert → Key Vault recommendation
+│   ├── cost_advisor/       # Weekly Cost Management report → Key Vault (port of spot_savings)
+│   └── tests/              # pytest + unittest.mock tests for all three functions
+│
 └── .github/workflows/
-    ├── ci.yml              # terraform fmt/validate, checkov, kubeconform, helm lint, pytest
+    ├── ci.yml              # terraform fmt/validate (AWS+Azure), checkov, kubeconform, helm lint, pytest (AWS+Azure)
     ├── pre-commit.yml      # pre-commit hook validation on PRs
-    └── drift-detection.yml # scheduled Terraform plan diff with GitHub issue creation
+    └── drift-detection.yml # scheduled Terraform plan diff for AWS and Azure with GitHub issue creation
 ```
 
 ## Tech stack
+
+### AWS
 
 | Layer | Tools |
 |---|---|
@@ -91,6 +99,24 @@ Self-healing is wired end-to-end: Karpenter replaces spot nodes, three Lambda fu
 | Chaos | AWS FIS (spot termination, memory pressure) |
 | CI | GitHub Actions, Atlantis (PR plans), drift detection |
 | Runtime | Python 3.12 Lambdas, moto-tested, EventBridge triggers |
+
+### Azure
+
+| Layer | Tools |
+|---|---|
+| IaC | Terraform 1.9, azurerm ~3.110, Checkov |
+| Cluster | AKS 1.30, Cilium CNI overlay, spot VMSS node pool |
+| Identity | Workload Identity + Federated Credentials (replaces Pod Identity) |
+| Secrets | Azure Key Vault + CSI Secret Store (replaces Secrets Manager + ESO) |
+| GitOps | ArgoCD 7.4 (same bootstrap, Azure ingress via web app routing) |
+| Security | Kyverno, Falco, Trivy Operator, Microsoft Defender for Containers, cert-manager (Azure DNS-01) |
+| Observability | Prometheus, Grafana, Loki, Tempo, Azure Monitor, Log Analytics |
+| FinOps | Kubecost, Azure Cost Management, cost advisor Azure Function |
+| Autoscaling | KEDA (Service Bus trigger), VPA, Goldilocks |
+| Event routing | Event Grid (replaces EventBridge) |
+| Messaging | Azure Service Bus (replaces SQS) |
+| CI | GitHub Actions (Azure OIDC login), Atlantis, drift detection |
+| Runtime | Python 3.12 Azure Functions, unittest.mock-tested, timer + Event Grid triggers |
 
 ## Prerequisites
 
