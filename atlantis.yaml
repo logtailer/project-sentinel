@@ -70,7 +70,7 @@ workflows:
         - init:
             extra_args: ["-backend=false"]
         - run: terraform fmt -check -recursive .
-        - run: checkov --config-file ../../.checkov.yml --quiet
+        - run: checkov --config-file $(git rev-parse --show-toplevel)/.checkov.yml --quiet
         - plan
     apply:
       steps:
