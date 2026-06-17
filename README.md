@@ -4,6 +4,8 @@ A production-grade, self-healing Kubernetes platform built with Terraform and Ar
 
 ## What it builds
 
+### AWS
+
 ```
 AWS Account
 └── VPC (10.0.0.0/16 + 100.64.0.0/16 pod CIDR, 3 AZs, per-AZ NAT)
@@ -25,7 +27,29 @@ AWS Account
         └── AWS FIS            — chaos experiments (spot termination, memory pressure)
 ```
 
-Self-healing is wired end-to-end: Karpenter replaces spot nodes, three Lambda functions handle node remediation, scaling advice, and weekly cost reporting, and AWS FIS experiments validate recovery automatically.
+### Azure
+
+```
+Azure Subscription
+└── Resource Group (rg-sentinel-dev / rg-sentinel-prod)
+    └── VNet (10.0.0.0/16) + pod subnet (10.0.64.0/18, delegated)
+        └── AKS 1.30 (Cilium CNI overlay, Azure RBAC, Workload Identity)
+            ├── Spot VMSS node pool  — Azure equivalent of Karpenter spot provisioning
+            ├── ArgoCD               — same GitOps bootstrap as AWS, Azure web app routing ingress
+            ├── cert-manager         — automated TLS via Let's Encrypt DNS-01 (Azure DNS)
+            ├── External Secrets     — Key Vault secrets via Workload Identity federation
+            ├── Falco                — eBPF runtime threat detection (same config as AWS)
+            ├── Trivy Operator       — image vulnerability scanning (same config as AWS)
+            ├── Kyverno              — same policy set as AWS
+            ├── VPA + Goldilocks     — right-sizing recommendations
+            ├── KEDA                 — event-driven autoscaling (Service Bus trigger)
+            ├── kube-prometheus-stack + Azure Monitor — metrics, alerting, Grafana
+            ├── Loki + Log Analytics — log aggregation with AKS audit stream
+            ├── Kubecost             — cost allocation federated to Prometheus
+            └── Azure Functions (3)  — node remediation, scaling advisor, cost advisor
+```
+
+Self-healing is wired end-to-end on both clouds. On AWS: Karpenter replaces spot nodes, three Lambda functions handle node remediation, scaling advice, and weekly cost reporting, and AWS FIS experiments validate recovery. On Azure: spot VMSS eviction triggers Event Grid → Azure Function for node image upgrade, KEDA scales on Service Bus queue depth, and the cost advisor queries Azure Cost Management weekly.
 
 ## Repository layout
 
