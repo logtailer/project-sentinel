@@ -37,7 +37,12 @@ packaged.yaml
 # Local dev scratch
 scratch/
 notes.md
+plan.md
 *.local
+
+# Azure local config
+**/.azure/
+azure-functions/.python_packages/
 
 # pre-commit cache
 .pre-commit-cache/
