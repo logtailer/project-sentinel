@@ -109,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [node_remediation, scaling_advisor]
+        package: [node_remediation, scaling_advisor, spot_savings, fis_recovery]
     steps:
       - uses: actions/checkout@v4
 
