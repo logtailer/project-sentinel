@@ -1,8 +1,10 @@
 # Project Sentinel
 
-A production-grade, self-healing EKS platform built with Terraform and ArgoCD GitOps. Sentinel provisions a fully automated Kubernetes environment on AWS — from VPC and cluster creation through runtime security, observability, FinOps, and chaos engineering — with every layer managed as code.
+A production-grade, self-healing Kubernetes platform built with Terraform and ArgoCD GitOps — deployable on **AWS (EKS)** or **Azure (AKS)**. Sentinel provisions a fully automated Kubernetes environment from cluster creation through runtime security, observability, FinOps, and chaos engineering — with every layer managed as code and no cloud vendor lock-in at the GitOps layer.
 
 ## What it builds
+
+### AWS
 
 ```
 AWS Account
@@ -25,7 +27,29 @@ AWS Account
         └── AWS FIS            — chaos experiments (spot termination, memory pressure)
 ```
 
-Self-healing is wired end-to-end: Karpenter replaces spot nodes, three Lambda functions handle node remediation, scaling advice, and weekly cost reporting, and AWS FIS experiments validate recovery automatically.
+### Azure
+
+```
+Azure Subscription
+└── Resource Group (rg-sentinel-dev / rg-sentinel-prod)
+    └── VNet (10.0.0.0/16) + pod subnet (10.0.64.0/18, delegated)
+        └── AKS 1.30 (Cilium CNI overlay, Azure RBAC, Workload Identity)
+            ├── Spot VMSS node pool  — Azure equivalent of Karpenter spot provisioning
+            ├── ArgoCD               — same GitOps bootstrap as AWS, Azure web app routing ingress
+            ├── cert-manager         — automated TLS via Let's Encrypt DNS-01 (Azure DNS)
+            ├── External Secrets     — Key Vault secrets via Workload Identity federation
+            ├── Falco                — eBPF runtime threat detection (same config as AWS)
+            ├── Trivy Operator       — image vulnerability scanning (same config as AWS)
+            ├── Kyverno              — same policy set as AWS
+            ├── VPA + Goldilocks     — right-sizing recommendations
+            ├── KEDA                 — event-driven autoscaling (Service Bus trigger)
+            ├── kube-prometheus-stack + Azure Monitor — metrics, alerting, Grafana
+            ├── Loki + Log Analytics — log aggregation with AKS audit stream
+            ├── Kubecost             — cost allocation federated to Prometheus
+            └── Azure Functions (3)  — node remediation, scaling advisor, cost advisor
+```
+
+Self-healing is wired end-to-end on both clouds. On AWS: Karpenter replaces spot nodes, three Lambda functions handle node remediation, scaling advice, and weekly cost reporting, and AWS FIS experiments validate recovery. On Azure: spot VMSS eviction triggers Event Grid → Azure Function for node image upgrade, KEDA scales on Service Bus queue depth, and the cost advisor queries Azure Cost Management weekly.
 
 ## Repository layout
 
@@ -71,13 +95,21 @@ Self-healing is wired end-to-end: Karpenter replaces spot nodes, three Lambda fu
 │   ├── spot_savings/       # Weekly Cost Explorer report → SSM parameter
 │   └── tests/              # pytest + moto unit tests for all three functions
 │
+├── azure-functions/
+│   ├── node_remediation/   # AKS node event → node image upgrade (Azure SDK port)
+│   ├── scaling_advisor/    # Azure Monitor alert → Key Vault recommendation
+│   ├── cost_advisor/       # Weekly Cost Management report → Key Vault (port of spot_savings)
+│   └── tests/              # pytest + unittest.mock tests for all three functions
+│
 └── .github/workflows/
-    ├── ci.yml              # terraform fmt/validate, checkov, kubeconform, helm lint, pytest
+    ├── ci.yml              # terraform fmt/validate (AWS+Azure), checkov, kubeconform, helm lint, pytest (AWS+Azure)
     ├── pre-commit.yml      # pre-commit hook validation on PRs
-    └── drift-detection.yml # scheduled Terraform plan diff with GitHub issue creation
+    └── drift-detection.yml # scheduled Terraform plan diff for AWS and Azure with GitHub issue creation
 ```
 
 ## Tech stack
+
+### AWS
 
 | Layer | Tools |
 |---|---|
@@ -91,6 +123,24 @@ Self-healing is wired end-to-end: Karpenter replaces spot nodes, three Lambda fu
 | Chaos | AWS FIS (spot termination, memory pressure) |
 | CI | GitHub Actions, Atlantis (PR plans), drift detection |
 | Runtime | Python 3.12 Lambdas, moto-tested, EventBridge triggers |
+
+### Azure
+
+| Layer | Tools |
+|---|---|
+| IaC | Terraform 1.9, azurerm ~3.110, Checkov |
+| Cluster | AKS 1.30, Cilium CNI overlay, spot VMSS node pool |
+| Identity | Workload Identity + Federated Credentials (replaces Pod Identity) |
+| Secrets | Azure Key Vault + CSI Secret Store (replaces Secrets Manager + ESO) |
+| GitOps | ArgoCD 7.4 (same bootstrap, Azure ingress via web app routing) |
+| Security | Kyverno, Falco, Trivy Operator, Microsoft Defender for Containers, cert-manager (Azure DNS-01) |
+| Observability | Prometheus, Grafana, Loki, Tempo, Azure Monitor, Log Analytics |
+| FinOps | Kubecost, Azure Cost Management, cost advisor Azure Function |
+| Autoscaling | KEDA (Service Bus trigger), VPA, Goldilocks |
+| Event routing | Event Grid (replaces EventBridge) |
+| Messaging | Azure Service Bus (replaces SQS) |
+| CI | GitHub Actions (Azure OIDC login), Atlantis, drift detection |
+| Runtime | Python 3.12 Azure Functions, unittest.mock-tested, timer + Event Grid triggers |
 
 ## Prerequisites
 

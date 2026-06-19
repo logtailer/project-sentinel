@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    kubernetes.io/ingress.class: webapprouting.kubernetes.azure.com
+    cert-manager.io/cluster-issuer: letsencrypt-prod-azure
+spec:
+  tls:
+    - hosts:
+        - argocd.sentinel.example.com
+      secretName: argocd-tls
+  rules:
+    - host: argocd.sentinel.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 443

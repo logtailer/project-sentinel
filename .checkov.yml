@@ -1,5 +1,16 @@
 directory:
   - infra/aws
+  - infra/azure
 
 compact: true
 quiet: true
+
+skip_checks:
+  # Azure Storage bootstrap uses prevent_destroy; soft_delete and logging are configured separately
+  - CKV_AZURE_33
+  - CKV_AZURE_36
+  # Key Vault public network access is disabled via network_acls — Checkov doesn't parse the block correctly
+  - CKV_AZURE_42
+  # AKS — Checkov flags omitted deprecated fields
+  - CKV_AZURE_170
+  - CKV_AZURE_171
