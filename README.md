@@ -1,6 +1,56 @@
 # Project Sentinel
 
+[![CI](https://github.com/logtailer/project-sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/logtailer/project-sentinel/actions/workflows/ci.yml)
+[![Deploy](https://github.com/logtailer/project-sentinel/actions/workflows/deploy.yml/badge.svg)](https://github.com/logtailer/project-sentinel/actions/workflows/deploy.yml)
+[![Drift Detection](https://github.com/logtailer/project-sentinel/actions/workflows/drift-detection.yml/badge.svg)](https://github.com/logtailer/project-sentinel/actions/workflows/drift-detection.yml)
+
 A production-grade, self-healing Kubernetes platform built with Terraform and ArgoCD GitOps — deployable on **AWS (EKS)** or **Azure (AKS)**. Sentinel provisions a fully automated Kubernetes environment from cluster creation through runtime security, observability, FinOps, and chaos engineering — with every layer managed as code and no cloud vendor lock-in at the GitOps layer.
+
+## Self-healing loop
+
+```mermaid
+flowchart TD
+    subgraph AWS ["AWS / Azure"]
+        spot["Spot interruption\n(EC2 / VMSS)"]
+        node_not_ready["Node NotReady\nevent"]
+        cw_alarm["CloudWatch alarm\n/ Azure Monitor alert"]
+        fis["AWS FIS\nchaos experiment"]
+    end
+
+    subgraph Platform ["Platform layer"]
+        karpenter["Karpenter\nreplaces node"]
+        lambda["node_remediation\nLambda / Azure Fn"]
+        scaling_lambda["scaling_advisor\nLambda / Azure Fn"]
+        keda["KEDA scales\npod replicas"]
+        ssm["SSM Parameter Store\n/ Key Vault"]
+    end
+
+    subgraph GitOps ["GitOps (ArgoCD)"]
+        argocd["ArgoCD\nself-heals app state"]
+        kyverno["Kyverno\nenforces policies"]
+    end
+
+    subgraph Observe ["Observe"]
+        prom["Prometheus\n+ Grafana"]
+        loki["Loki\nlog aggregation"]
+        falco["Falco\nruntime threat detection"]
+    end
+
+    spot -->|SQS interruption queue| karpenter
+    karpenter -->|new node ready| argocd
+    node_not_ready -->|EventBridge| lambda
+    lambda -->|rolling update| ssm
+    cw_alarm -->|EventBridge| scaling_lambda
+    scaling_lambda -->|scale_out recommendation| ssm
+    cw_alarm -->|trigger| keda
+    fis -->|terminate node| spot
+    fis -->|memory stress| cw_alarm
+    argocd -->|sync| kyverno
+    kyverno -->|generate PDB / NetworkPolicy| argocd
+    Platform -->|metrics| prom
+    Platform -->|logs| loki
+    Platform -->|syscalls| falco
+```
 
 ## What it builds
 
