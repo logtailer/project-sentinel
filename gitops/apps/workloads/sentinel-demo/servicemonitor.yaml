@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sentinel-demo
+  namespace: sentinel-demo
+  labels:
+    app: sentinel-demo
+    team: platform
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: sentinel-demo
+  endpoints:
+    - port: http
+      path: /
+      interval: 30s
+      scrapeTimeout: 10s

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel-demo
+  namespace: sentinel-demo
+  labels:
+    app: sentinel-demo
+    team: platform
+    environment: dev
+spec:
+  selector:
+    app: sentinel-demo
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP

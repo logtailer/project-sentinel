@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sentinel-demo
+  labels:
+    provisioner: sentinel
+    team: platform
+    environment: dev

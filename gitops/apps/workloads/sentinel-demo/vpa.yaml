@@ -1,0 +1,24 @@
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: sentinel-demo
+  namespace: sentinel-demo
+  labels:
+    app: sentinel-demo
+    team: platform
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sentinel-demo
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: echo
+        minAllowed:
+          cpu: 50m
+          memory: 32Mi
+        maxAllowed:
+          cpu: 500m
+          memory: 256Mi

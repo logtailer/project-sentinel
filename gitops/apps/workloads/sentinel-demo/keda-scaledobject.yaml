@@ -1,0 +1,25 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sentinel-demo-cloudwatch
+  namespace: sentinel-demo
+  labels:
+    app: sentinel-demo
+    team: platform
+spec:
+  scaleTargetRef:
+    name: sentinel-demo
+  minReplicaCount: 2
+  maxReplicaCount: 20
+  cooldownPeriod: 120
+  triggers:
+    - type: aws-cloudwatch
+      metadata:
+        namespace: AWS/EKS
+        dimensionName: ClusterName
+        dimensionValue: sentinel-dev
+        metricName: node_cpu_utilization
+        targetMetricValue: "60"
+        minMetricValue: "0"
+        awsRegion: us-east-1
+        identityOwner: operator

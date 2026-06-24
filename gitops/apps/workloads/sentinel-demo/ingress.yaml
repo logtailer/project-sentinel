@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sentinel-demo
+  namespace: sentinel-demo
+  labels:
+    app: sentinel-demo
+    team: platform
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - demo.sentinel.example.com
+      secretName: sentinel-demo-tls
+  rules:
+    - host: demo.sentinel.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sentinel-demo
+                port:
+                  name: http
